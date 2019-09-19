@@ -102,11 +102,8 @@ if ( strstr( $x_pieces[0], ':' ) && ! strstr( $x_pieces[0], 'x' ) ) {
 $dimensions = explode( 'x', $x_pieces[0] );
 
 // Filter out any characters that are not numbers, colons or decimal points
-$width = preg_replace( '/[^\d:\.]/i', '', $dimensions[0] );
-$height = $width;
-if ( $dimensions[1] ) {
-	$height = preg_replace( '/[^\d:\.]/i', '', $dimensions[1] );
-}
+$width =600;
+$height = 400;
 
 // If the dimensions are too small then kill the script
 if ( $width < 1 || $height < 1 ) {
@@ -155,7 +152,7 @@ $height = round( $height, 3 );
 $text_angle = 0;
 
  // If you want to use a different font simply upload the true type font (.ttf) file to the same directory as this PHP file and set the $font variable to the font file name. I'm using the M+ font which is free for distribution -> http://www.fontsquirrel.com/fonts/M-1c
-$font = 'fonts/mplus-2c-light.ttf';
+$font = 'fonts/Affogato-Black.ttf';
 
 // Create an image
 $img = imageCreate( $width, $height );
@@ -169,25 +166,12 @@ if ( empty( $_GET['text'] ) || ! isset( $_GET['text'] ) ) {
 	}
 }
 
-if ( isset( $_GET['text'] ) && $_GET['text'] ) {
-	$_GET['text'] = preg_replace_callback(
-		"/(0x[0-9A-F]{,3})/ui",
-		function( $matches ) {
-			return chr( hexdec( $matches[0] ) );
-		},
-		$_GET['text']
-	);
-	$lines = substr_count( $_GET['text'], '|' );
-	$text = preg_replace( '/\|/i', "\n", $_GET['text'] );
-} else {
-	$lines = 1;
-	// This is the default text string that will go right in the middle of the rectangle
-	// &#215; is the multiplication sign, it is not an 'x'
-	$text = $width." &#215; ".$height;
-}
+$text = $dimensions[0];
+$text = ltrim($text, '1'); 
+$text = ucfirst($text);
 
 // Ric Ewing: I modified this to behave better with long or narrow images and condensed the resize code to a single line
-$fontsize = max( min( $width / strlen($text) * 1.15, $height * 0.5 ), 5 );
+$fontsize = max( min( $width / strlen($text) * 1.15, $height * 0.15 ), 5 );
 // Pass these variable to a function to calculate the position of the bounding box
 $textBox = imagettfbbox_t($fontsize, $text_angle, $font, $text);
 // Calculate the width of the text box by subtracting the upper right "X" position with the lower left "X" position
@@ -201,9 +185,14 @@ $textX = ceil( ( $width - $textWidth ) / 2 );
 $textY = ceil( ( $height - $textHeight ) / 2 + $textHeight );
 
 //Create the rectangle with the specified background color
-imageFilledRectangle( $img, 0, 0, $width, $height, $bg_color );
+header('Content-type: image/png');
+$im = @imagecreatefrompng('img/background.png');
+$im_copy = imagecopyresampled($im, $im, 0, 0, 0, 0, $width , $height, $width , $height);
 //Create and positions the text
-imagettftext( $img, $fontsize, $text_angle, $textX, $textY, $fg_color, $font, $text );
+$white = imagecolorallocate($im, 255, 255, 255);
+imagettftext($im, $fontsize, $text_angle, $textX, 90, $white, $font, $text);
+imagepng($im);
+imagedestroy($im);
 
 
 function process_output_buffer( $buffer = '' ) {
@@ -234,7 +223,7 @@ $output = ob_get_contents();
 ob_end_clean();
 
 // Caching Headers
-$offset = 60 * 60 * 24 * 90; //90 Days
+$offset = 10000; //10 seconds
 header( 'Cache-Control: public, max-age=' . $offset );
 // Set a far future expire date. This keeps the image locally cached by the user for less hits to the server
 header( 'Expires: ' . gmdate( DATE_RFC1123, time() + $offset ) );
